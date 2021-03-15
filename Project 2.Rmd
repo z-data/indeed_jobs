@@ -67,12 +67,21 @@ for(i in 1:4) {
 
 head(jobs_df)
 dim(jobs_df)
-```
-```{r}
-#jobs_df$Description
-#split(df, "Job", )
+
+#remove the first row because it is useless
+jobs_df <- jobs_df[-1,]
 ```
 
+
 ```{r}
-#Nikhil test commit
+#split dataframe into new dataframes based on job description
+library(dplyr)
+master_df <- jobs_df %>%
+  group_by(Job)
+
+group_split(master_df)
+group_keys(master_df)
+
+
+
 ```
