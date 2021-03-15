@@ -89,8 +89,14 @@ library(stopwords)
 #splitting the DF
 split_df = split(jobs_df, jobs_df$Job)
 #split_df
-```
 
+
+#just an example of how it works
+table(tokenize_words(split_df$`business+analyst`$Description[1], 
+               stopwords = stopwords::stopwords("en")))
+ 
+```
+Will need to probably write a function that takes words and adds them to the DF 
 
 ```{r}
 #split dataframe into new dataframes based on job description
