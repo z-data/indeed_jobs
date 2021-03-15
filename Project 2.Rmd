@@ -16,7 +16,7 @@ jobs_2021 = fromJSON(file = "indeed_job_descs_2021_01_25.json")
 ```
 
 
-This first code block works
+Getting the data into a workable DF
 ```{r}
 jobs_df = data.frame("Job", "State", "Employment", 
                      "description", 2020)
@@ -44,8 +44,10 @@ for(i in 1:length(jobs_2020)) {
 head(jobs_df)
 dim(jobs_df)
 ```
+
 There is no data for anything past the 4th description
 ```{r}
+#1:4 because every job after the 4th one has no description
 for(i in 1:4) {
   job = jobs_2021[[i]]$request_params[1]
   state = jobs_2021[[i]]$request_params[2]
@@ -64,20 +66,27 @@ for(i in 1:4) {
 }
 
 #jobs_2021
-
 head(jobs_df)
 dim(jobs_df)
 
 #remove the first row because it is useless
 jobs_df <- jobs_df[-1,]
 ```
+```{r}
+#just some visualization of the data 
+par(mar=c(11,4,4,4))
+barplot(height = table(jobs_df$Job), las = 2, cex.names = .75)
+
+table(jobs_df$Job)
+```
 
 
-
+You will need to download tokenizers and stopwords
 ```{r}
 library(tokenizers)
 library(stopwords)
 
+#splitting the DF
 split_df = split(jobs_df, jobs_df$Job)
 #split_df
 ```
