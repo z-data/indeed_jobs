@@ -46,7 +46,6 @@ dim(jobs_df)
 ```
 There is no data for anything past the 4th description
 ```{r}
-
 for(i in 1:4) {
   job = jobs_2021[[i]]$request_params[1]
   state = jobs_2021[[i]]$request_params[2]
@@ -66,8 +65,11 @@ for(i in 1:4) {
 
 #jobs_2021
 
-
 head(jobs_df)
 dim(jobs_df)
+```
+```{r}
+#jobs_df$Description
+#split(df, "Job", )
 ```
 
