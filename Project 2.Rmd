@@ -73,6 +73,16 @@ jobs_df <- jobs_df[-1,]
 ```
 
 
+
+```{r}
+library(tokenizers)
+library(stopwords)
+
+split_df = split(jobs_df, jobs_df$Job)
+#split_df
+```
+
+
 ```{r}
 #split dataframe into new dataframes based on job description
 library(dplyr)
