@@ -139,10 +139,23 @@ for (i in 1:length(split_df)) {
 }
 
 max(master_li$human_resource_specialist)
-
-
-
 ```
+
+```{r}
+#inputting my resume 
+resume = readLines("test.txt", warn = F)
+resume = str_c(resume, sep = " ", collapse = " ") 
+resume
+
+#tokenizing the resume 
+resume_tokens = table(tokenize_words(resume, 
+                                  stopwords = stopwords::stopwords("en")))
+resume_tokens
+```
+
+
+
+
  
 ```{r}
 #split dataframe into new dataframes based on job description
