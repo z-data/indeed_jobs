@@ -129,11 +129,13 @@ This part is grabbing the totals of each column
 master_li = list()
 for (i in 1:length(split_df)) {
   
+  #getting a temp holder
   temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+  #getting a normalization factor 
   factor =mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
-  
   #getting some sort of normalized data for the master list
   master_li[[names(split_df)[i]]] = temp / factor
+  
 }
 
 max(master_li$human_resource_specialist)
