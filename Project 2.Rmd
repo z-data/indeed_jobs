@@ -75,8 +75,14 @@ dim(jobs_df)
 jobs_df <- jobs_df[-1,]
 
 #make the names easier for when we split
-jobs_df$Job = str_replace(jobs_df$Job, "\\+", "_")
+jobs_df$Job = str_replace_all(jobs_df$Job, "\\+", "_")
+
+#remove potential sources of weird string behavior
+#in a couple of samples it was relatively common to see "a.T" as in the end of one sentance into the next
+jobs_df$Description = str_replace_all(jobs_df$Description, "\\.", " ")
 ```
+
+
 ```{r}
 #just some visualization of the data 
 par(mar=c(11,4,4,4))
@@ -118,8 +124,24 @@ for (i in 1:length(split_df)) {
   print(i)
 }
 ```
+This part is grabbing the totals of each column 
+```{r}
+master_li = list()
+for (i in 1:length(split_df)) {
+  
+  temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+  factor =mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
+  
+  #getting some sort of normalized data for the master list
+  master_li[[names(split_df)[i]]] = temp / factor
+}
+
+max(master_li$human_resource_specialist)
 
 
+
+```
+ 
 ```{r}
 #split dataframe into new dataframes based on job description
 library(dplyr)
@@ -130,5 +152,5 @@ group_split(master_df)
 group_keys(master_df)
 
 
-
+#stopwords::stopwords("en", source = "snowball")
 ```
