@@ -177,6 +177,8 @@ multi = function(df) {
 
 #apply(df, 2, multi)
 
+#checking to see if it works on the data 
+#it does 
 tester = bind_rows(master_li[[3]], resume_tokens)
 tester[is.na(tester)] = 0
 
