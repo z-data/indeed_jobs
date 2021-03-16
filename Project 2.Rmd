@@ -150,7 +150,37 @@ resume
 #tokenizing the resume 
 resume_tokens = table(tokenize_words(resume, 
                                   stopwords = stopwords::stopwords("en")))
+
+resume_tokens = as.list(resume_tokens, all.names = F)
+
+resume_tokens = as.data.frame(resume_tokens)
 resume_tokens
+```
+
+```{r}
+#function that multiplys columns in DFs together 
+multi = function(df) {
+  if (length(df) < 3) {
+    return(df[1] * df[2])
+  } else {
+    times = df[1] * df[2]
+    for(i in 3:length(df)) {
+      times = df[i] * times  
+    }
+    return(times)
+  }
+}
+
+#tester to make sure multi works
+#df = data.frame(x1 = c(1,2),
+#                x2 = c(1,2))
+
+#apply(df, 2, multi)
+
+tester = bind_rows(master_li[[3]], resume_tokens)
+tester[is.na(tester)] = 0
+
+sum(apply(tester, 2, multi), na.rm = T)
 ```
 
 
