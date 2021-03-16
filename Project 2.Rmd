@@ -10,6 +10,9 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 ```{r}
 library(rjson)
 library(dplyr)
+library(tokenizers)
+library(stopwords)
+library(stringr)
 
 jobs_2020 = fromJSON(file = "indeed_job_descs_2020_09_20.json")
 jobs_2021 = fromJSON(file = "indeed_job_descs_2021_01_25.json")
@@ -71,6 +74,9 @@ dim(jobs_df)
 
 #remove the first row because it is useless
 jobs_df <- jobs_df[-1,]
+
+#make the names easier for when we split
+jobs_df$Job = str_replace(jobs_df$Job, "\\+", "_")
 ```
 ```{r}
 #just some visualization of the data 
@@ -83,19 +89,46 @@ table(jobs_df$Job)
 
 You will need to download tokenizers and stopwords
 ```{r}
-library(tokenizers)
-library(stopwords)
-
 #splitting the DF
 split_df = split(jobs_df, jobs_df$Job)
-#split_df
 
-
-#just an example of how it works
-table(tokenize_words(split_df$`business+analyst`$Description[1], 
-               stopwords = stopwords::stopwords("en")))
- 
+#tokenize function that takes job descriptions and tokenizes them in a new DF
+#That DF gets merged back with the old one 
+tokenize.df = function(df) {
+  
+  temp = data.frame()
+  for (i in 1:length(df$Description)) {
+    tokens = table(tokenize_words(df$Description[i], 
+                                  stopwords = stopwords::stopwords("en")))
+    #temp DF to merge later 
+    temp = bind_rows(temp, tokens)
+    
+  }
+  #setting NA to 0 because it is easier to use in this case
+  temp[is.na(temp)] = 0
+  df = bind_cols(df,temp)
+  return(df)
+}
 ```
+
+```{r}
+#for loop to go through each job type and tokenize the description
+for (i in 1:length(split_df)) {
+  temp = split_df[i]
+  split_df[[i]] = tokenize.df(temp[[1]])
+  print(i)
+}
+
+#n = names(split_df)
+
+#t  = split_df[n[1]]
+#mode(t)
+#split_df[[2]]
+#tokenize.df(t$business_analyst)
+
+```
+
+
 Will need to probably write a function that takes words and adds them to the DF 
 
 ```{r}
