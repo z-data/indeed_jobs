@@ -47,7 +47,6 @@ for(i in 1:length(jobs_2020)) {
 head(jobs_df)
 dim(jobs_df)
 ```
-
 There is no data for anything past the 4th description
 ```{r}
 #1:4 because every job after the 4th one has no description
@@ -86,7 +85,6 @@ barplot(height = table(jobs_df$Job), las = 2, cex.names = .75)
 table(jobs_df$Job)
 ```
 
-
 You will need to download tokenizers and stopwords
 ```{r}
 #splitting the DF
@@ -111,6 +109,7 @@ tokenize.df = function(df) {
 }
 ```
 
+This part takes some time
 ```{r}
 #for loop to go through each job type and tokenize the description
 for (i in 1:length(split_df)) {
@@ -118,18 +117,8 @@ for (i in 1:length(split_df)) {
   split_df[[i]] = tokenize.df(temp[[1]])
   print(i)
 }
-
-#n = names(split_df)
-
-#t  = split_df[n[1]]
-#mode(t)
-#split_df[[2]]
-#tokenize.df(t$business_analyst)
-
 ```
 
-
-Will need to probably write a function that takes words and adds them to the DF 
 
 ```{r}
 #split dataframe into new dataframes based on job description
