@@ -114,6 +114,7 @@ tokenize.df = function(df) {
   return(df)
 }
 ```
+\
 
 This part takes some time
 ```{r}
@@ -171,13 +172,6 @@ multi = function(df) {
   }
 }
 
-#tester to make sure multi works
-#df = data.frame(x1 = c(1,2),
-#                x2 = c(1,2))
-
-#apply(df, 2, multi)
-
-
 #function that gives best matches to the overall job fields 
 #naive/stupid way of doing it 
 best_matches_overview = function(li, resume) {
@@ -197,11 +191,48 @@ best_matches_overview = function(li, resume) {
 bm = best_matches_overview(master_li, resume_tokens)
 print(sort(bm[,1], decreasing = T))
 
+job_names  = names(sort(bm[,1], decreasing = T)[1:3])
+job_names = str_split_fixed(job_names, "", 1)
+job_names
+```
+Since it is a human in the model algo we can then either determine if these seem like they will fit or not.
+We could just grab the first 3 and get a few more exmples 
+
+```{r}
+best_matches = function(df, job_name, resume) {
+  matches = list()
+  #outerloop for the overall job category
+  for (i in 1:nrow(job_name)) {
+    #initialize a score and an index to return later on 
+    score = 0
+    index = 1
+    print(job_name[i,1])
+    #innerloop to get the best job match from the category
+    for(j in 1:nrow(df[[i]])) {
+      #temp is a DF of just the jth row only containing columns with tokenization
+      temp = df[[job_name[i,1] ]][j, 6:ncol(df[[job_name[i,1]]])]
+      tester = bind_rows(temp, resume)
+      tester[is.na(tester)] = 0
+      new_score = sum(apply(tester, 2, multi), na.rm = T)
+      #changes the best seen score 
+      if (new_score > score) {
+        index = j 
+        score = new_score 
+      }
+      
+    }
+    #sets the list with name of overall job and appends the best scoring description 
+    matches[[job_name[i,1]]] = df[[job_name[i,1]]][index, 4]
+    }
+  return(matches)
+}
+
+
+best = best_matches(split_df, job_names, resume_tokens)
+best
+
 
 ```
-
-
-
 
  
 ```{r}
