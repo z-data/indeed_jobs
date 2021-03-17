@@ -177,12 +177,27 @@ multi = function(df) {
 
 #apply(df, 2, multi)
 
-#checking to see if it works on the data 
-#it does 
-tester = bind_rows(master_li[[3]], resume_tokens)
-tester[is.na(tester)] = 0
 
-sum(apply(tester, 2, multi), na.rm = T)
+#function that gives best matches to the overall job fields 
+#naive/stupid way of doing it 
+best_matches_overview = function(li, resume) {
+  matches = matrix(NA, nrow = length(li), ncol = 1)
+  
+  for(i in 1:length(li)) {
+    tester = bind_rows(li[[i]], resume)
+    tester[is.na(tester)] = 0
+    score = sum(apply(tester, 2, multi), na.rm = T)
+    #matches[[names(li)[i]]] = score
+    matches[i,1] = score
+  }
+  rownames(matches) = names(li)
+  return(matches)
+}
+
+bm = best_matches_overview(master_li, resume_tokens)
+print(sort(bm[,1], decreasing = T))
+
+
 ```
 
 
