@@ -46,6 +46,8 @@ for(i in 1:length(jobs_2020)) {
 
 head(jobs_df)
 dim(jobs_df)
+
+#unique(factor(jobs_df$State))
 ```
 There is no data for anything past the 4th description
 ```{r}
@@ -78,7 +80,7 @@ jobs_df <- jobs_df[-1,]
 jobs_df$Job = str_replace_all(jobs_df$Job, "\\+", "_")
 
 #remove potential sources of weird string behavior
-#in a couple of samples it was relatively common to see "a.T" as in the end of one sentance into the next
+#in a couple of samples it was relatively common to see "a.T" as in the end of one sentence into the next
 jobs_df$Description = str_replace_all(jobs_df$Description, "\\.", " ")
 ```
 
@@ -114,16 +116,37 @@ tokenize.df = function(df) {
   return(df)
 }
 ```
-\
+
+
+```{r}
+tokenize_ngrams.df = function(df) {
+  
+  temp = data.frame()
+  for (i in 1:length(df$Description)) {
+    tokens = table(tokenize_ngrams(df$Description[i], n = 3, n_min = 1,
+                                  stopwords = stopwords::stopwords("en")))
+    #temp DF to merge later 
+    temp = bind_rows(temp, tokens)
+    
+  }
+  #setting NA to 0 because it is easier to use in this case
+  temp[is.na(temp)] = 0
+  df = bind_cols(df,temp)
+  return(df)
+}
+```
+
 
 This part takes some time
 ```{r}
+
 #for loop to go through each job type and tokenize the description
 for (i in 1:length(split_df)) {
   temp = split_df[i]
   split_df[[i]] = tokenize.df(temp[[1]])
   print(i)
 }
+
 ```
 This part is grabbing the totals of each column 
 ```{r}
@@ -133,7 +156,7 @@ for (i in 1:length(split_df)) {
   #getting a temp holder
   temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
   #getting a normalization factor 
-  factor =mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
+  factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
   #getting some sort of normalized data for the master list
   master_li[[names(split_df)[i]]] = temp / factor
   
@@ -143,19 +166,22 @@ max(master_li$human_resource_specialist)
 ```
 
 ```{r}
-#inputting my resume 
-resume = readLines("test.txt", warn = F)
-resume = str_c(resume, sep = " ", collapse = " ") 
-resume
-
-#tokenizing the resume 
-resume_tokens = table(tokenize_words(resume, 
-                                  stopwords = stopwords::stopwords("en")))
-
-resume_tokens = as.list(resume_tokens, all.names = F)
-
-resume_tokens = as.data.frame(resume_tokens)
-resume_tokens
+tokenize_resume = function(path) {
+  #inputting sarah resume 
+  resume = readLines(path, warn = F)
+  resume = str_c(resume, sep = " ", collapse = " ") 
+  
+  #tokenizing the resume 
+  tokens = table(tokenize_words(resume, 
+                                    stopwords = stopwords::stopwords("en")))
+  
+  tokens = as.list(tokens, all.names = F)
+  
+  tokens = as.data.frame(tokens)
+  return(tokens)
+}
+zac = tokenize_resume("test.txt")
+zac
 ```
 
 ```{r}
@@ -188,15 +214,16 @@ best_matches_overview = function(li, resume) {
   return(matches)
 }
 
-bm = best_matches_overview(master_li, resume_tokens)
+bm = best_matches_overview(master_li, sarah)
 print(sort(bm[,1], decreasing = T))
 
+#converting job names to a matrix
 job_names  = names(sort(bm[,1], decreasing = T)[1:3])
 job_names = str_split_fixed(job_names, "", 1)
-job_names
+
 ```
 Since it is a human in the model algo we can then either determine if these seem like they will fit or not.
-We could just grab the first 3 and get a few more exmples 
+We could just grab the first 3 and get a few more examples 
 
 ```{r}
 best_matches = function(df, job_name, resume) {
@@ -228,10 +255,12 @@ best_matches = function(df, job_name, resume) {
 }
 
 
-best = best_matches(split_df, job_names, resume_tokens)
+best = best_matches(split_df, job_names, sarah)
 best
-
-
+hope
+```
+```{r}
+max(master_li$human_resource_specialist)
 ```
 
  
@@ -244,6 +273,113 @@ master_df <- jobs_df %>%
 group_split(master_df)
 group_keys(master_df)
 
-
 #stopwords::stopwords("en", source = "snowball")
+
 ```
+
+## NEW METHODS:
+### breaaking jobs down to stem and non-stem then comparing jobs
+
+```{r}
+master_li_nonfactored = list()
+for (i in 1:length(split_df)) {
+  
+  #getting a temp holder
+  temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+  #getting a normalization factor 
+  #factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
+  #getting some sort of normalized data for the master list
+  master_li_nonfactored[[names(split_df)[i]]] = temp #/ factor
+  
+}
+
+
+#stem jobs for a new DF
+stem_jobs <- c("ux_designer", "test_engineer", "site_reliability_engineer", "data_architect", "data_scientist", "software_developer", "statistician", "deep_learning", "machine_learning_engineer", "business_analyst")
+
+#non-stem jobs for a new DF
+non_stem_jobs <- c("recruiter", "marketing", "sales", "office_manager", "human_resource_specialist", "researcher")
+
+#initializing stem DF
+stem_df <- data.frame()
+
+#creating new stem DF 
+for (title in stem_jobs) {
+  stem_df <- bind_rows(stem_df, master_li_nonfactored[[title]])
+  
+}
+#removing NA and replacing with 0
+stem_df[is.na(stem_df)] = 0
+stem_df
+
+#initializing 
+non_stem_df <- data.frame()
+
+#creating non stem DF
+for (title in non_stem_jobs) {
+  non_stem_df <- bind_rows(non_stem_df, master_li_nonfactored[[title]])
+  
+}
+#adding 0 for NA
+non_stem_df[is.na(non_stem_df)] = 0
+non_stem_df
+```
+```{r}
+stem_tokens <- colnames(stem_df)
+non_stem_tokens <- colnames(non_stem_df)
+
+#getting unique set of tokens 
+unique_stem_tokens <- setdiff(stem_tokens, non_stem_tokens)
+unique_non_stem_tokens <- setdiff(non_stem_tokens, stem_tokens)
+```
+
+
+```{r}
+stem_df = stem_df[unique_stem_tokens]
+non_stem_df = non_stem_df[unique_non_stem_tokens]
+
+#   
+#total_stem = sort(apply(stem_df, 2, sum), decreasing = T)
+#total_non_stem = sort(apply(non_stem_df, 2, sum), decreasing = T)
+
+
+#seeing if a resume is stem or non stem 
+stem_or_non = function(resume, stem, non_stem){
+  count_stem = 0 
+  count_non_stem = 0
+  for (i in names(resume)) {
+    if (i %in% names(stem)) {
+      count_stem = count_stem + 1 
+    }
+    else if (i %in% names(non_stem)) {
+      count_non_stem = count_stem + 1
+    }
+  }
+  li = list("stem" = count_stem, "non_stem" = count_non_stem)
+  return(li)
+}
+
+sarah = tokenize_resume("sarahresumetxt.txt")
+sarah
+
+zac = tokenize_resume("test.txt")
+zac
+
+stem_or_non(sarah_tokens, stem_df, non_stem_df)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
