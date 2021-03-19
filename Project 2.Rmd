@@ -214,6 +214,7 @@ best_matches_overview = function(li, resume) {
   return(matches)
 }
 
+
 bm = best_matches_overview(master_li, sarah)
 print(sort(bm[,1], decreasing = T))
 
@@ -370,7 +371,88 @@ stem_or_non(sarah_tokens, stem_df, non_stem_df)
 
 
 
+```{r}
 
+#create a var to represent weather the resume is stem or not
+resume_is_stem = FALSE
+
+#new df to hold the randomly sampled job descriptions
+#these job descs will be used to mine parameters to fit a predictive model that gives what the user will like
+sample_job_descriptions <- c()
+
+#non stem df
+non_stem_jobs_df <- jobs_df[jobs_df$Job=="recruiter"|jobs_df$Job=="marketing"|jobs_df$Job=="sales"|                      jobs_df$Job=="office_manager"|jobs_df$Job=="human_resource_specialist" |jobs_df$Job=="researcher" ,]
+
+#stem df
+stem_jobs_df <- jobs_df[jobs_df$Job == "ux_designer" | jobs_df$Job == "test_engineer" |jobs_df$Job == "site_reliability_engineer" |jobs_df$Job == "data_architect" |jobs_df$Job == "data_scientist" |jobs_df$Job == "software_developer" |jobs_df$Job == "statistician" |jobs_df$Job == "deep_learning" |jobs_df$Job == "machine_learning_engineer" |jobs_df$Job == "business_analyst",]
+
+
+#if the resume is flagged as stem
+if(resume_is_stem == FALSE){
+  
+  #randomly sample n jobs from the master df
+  sample_job_descriptions <- sample_n(non_stem_jobs_df, 5)
+  
+  #change from vector -> df
+  sample_job_descriptions <- as.data.frame(sample_job_descriptions)
+  
+  #create new col to represent if the user liked the job or not
+  sample_job_descriptions$liked_or_not <- NULL
+  
+  #loop thru the df, show the user a job desc and ask them if they like it. If they like it, assign a value of 1 to the liked_or_not col, if they don't assign a value of 0
+  for (index in 1:length(sample)) {
+    job_desc <- str(sample_job_descriptions$Description[index])
+    user_input <- readline(prompt= job_desc)
+    if(user_input == "y"){
+      sample_job_descriptions$liked_or_not[index] = 1
+    }else{
+      sample_job_descriptions$liked_or_not = 0
+    }
+  }
+  #repeat process for stem
+}else{
+  sample_job_descriptions <- sample_n(stem_jobs_df, 5)
+  sample_job_descriptions <- as.data.frame(sample_job_descriptions)
+  sample_job_descriptions$liked_or_not <- NULL
+  for (index in 1:length(sample)) {
+    job_desc <- str(sample_job_descriptions$Description[index])
+    user_input <- readline(prompt= job_desc)
+    if(user_input == "y"){
+      sample_job_descriptions$liked_or_not[index] = 1
+    }else{
+      sample_job_descriptions$liked_or_not = 0
+    }
+  }
+}
+
+#function to tokenize the job descriptions
+tokenize_job_desc = function(path) {
+  #inputting sarah resume 
+  resume = path
+  resume = str_c(resume, sep = " ", collapse = " ") 
+  
+  #tokenizing the resume 
+  tokens = table(tokenize_words(resume, 
+                                    stopwords = stopwords::stopwords("en")))
+  
+  tokens = as.list(tokens, all.names = F)
+  
+  tokens = as.data.frame(tokens)
+  return(tokens)
+}
+
+#vector to hold the tokens extracted from the job descriptions
+params <- c()
+
+#iterate thru the sampled job descriptions, tokenize them, and add tokens to the vector
+  for(row in length(sample_job_descriptions)){
+    param_row <- tokenize_job_desc(sample_job_descriptions$Description[index])
+    params <- c(params, param_row)
+  }
+
+#model data
+model <- glm(sample_job_descriptions$liked_or_not~params, family = "binomial")
+```
 
 
 
