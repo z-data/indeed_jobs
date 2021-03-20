@@ -444,14 +444,22 @@ tokenize_job_desc = function(path) {
 #vector to hold the tokens extracted from the job descriptions
 params <- c()
 
+
+sample_job_descriptions$tokens <- NULL
+
 #iterate thru the sampled job descriptions, tokenize them, and add tokens to the vector
+
+df_for_model <- data.frame()
+
   for(row in length(sample_job_descriptions)){
     param_row <- tokenize_job_desc(sample_job_descriptions$Description[index])
     params <- c(params, param_row)
+    
+    
   }
 
-#model data
-model <- glm(sample_job_descriptions$liked_or_not~params, family = "binomial")
+#need df with 2 cols, 1 is yes/no, and the other is a token column that lists the token
+
 ```
 
 
