@@ -335,6 +335,8 @@ unique_non_stem_tokens <- setdiff(non_stem_tokens, stem_tokens)
 ```
 
 
+## part for seeing if the resume matches stem or non stem more 
+
 ```{r}
 stem_df = stem_df[unique_stem_tokens]
 non_stem_df = non_stem_df[unique_non_stem_tokens]
@@ -366,7 +368,7 @@ sarah
 zac = tokenize_resume("test.txt")
 zac
 
-stem_or_non(sarah_tokens, stem_df, non_stem_df)
+values = stem_or_non(sarah_tokens, stem_df, non_stem_df)
 ```
 
 
@@ -374,11 +376,16 @@ stem_or_non(sarah_tokens, stem_df, non_stem_df)
 ```{r}
 
 #create a var to represent weather the resume is stem or not
-resume_is_stem = FALSE
+if (values$stem < values$non_stem) {
+  resume_is_stem = FALSE
+} else {
+  resume_is_stem = T
+}
+
 
 #new df to hold the randomly sampled job descriptions
 #these job descs will be used to mine parameters to fit a predictive model that gives what the user will like
-sample_job_descriptions <- c()
+sample_job_descriptions <- data.frame()
 
 #non stem df
 non_stem_jobs_df <- jobs_df[jobs_df$Job=="recruiter"|jobs_df$Job=="marketing"|jobs_df$Job=="sales"|                      jobs_df$Job=="office_manager"|jobs_df$Job=="human_resource_specialist" |jobs_df$Job=="researcher" ,]
@@ -386,7 +393,61 @@ non_stem_jobs_df <- jobs_df[jobs_df$Job=="recruiter"|jobs_df$Job=="marketing"|jo
 #stem df
 stem_jobs_df <- jobs_df[jobs_df$Job == "ux_designer" | jobs_df$Job == "test_engineer" |jobs_df$Job == "site_reliability_engineer" |jobs_df$Job == "data_architect" |jobs_df$Job == "data_scientist" |jobs_df$Job == "software_developer" |jobs_df$Job == "statistician" |jobs_df$Job == "deep_learning" |jobs_df$Job == "machine_learning_engineer" |jobs_df$Job == "business_analyst",]
 
+sampling = function(resume_is_stem) {
+  #if the resume is flagged as stem
+  if(resume_is_stem == FALSE){
+    
+    #randomly sample n jobs from the master df
+    sample_job_descriptions <- sample_n(non_stem_jobs_df, 5)
+    
+    #create new col to represent if the user liked the job or not
+    sample_job_descriptions$liked_or_not <- NULL
+    
+    #loop thru the df, show the user a job desc and ask them if they like it. If they like it, assign a value of 1 to the liked_or_not col, if they    don't assign a value of 0
+    for (index in 1:length(sample_job_descriptions)) {
+      job_desc <- str(sample_job_descriptions$Description[index])
+      user_input <- readline(prompt= job_desc)
+      if(user_input == "y"){
+        sample_job_descriptions$liked_or_not[index] = 1
+      }else{
+        sample_job_descriptions$liked_or_not = 0
+      }
+    } return(sample_job_descriptions)
+    #repeat process for stem
+  }else{
+    sample_job_descriptions <- sample_n(stem_jobs_df, 5)
+    sample_job_descriptions$liked_or_not <- NULL
+    for (index in 1:length(sample_job_descriptions)) {
+      job_desc <- str(sample_job_descriptions$Description[index])
+      user_input <- readline(prompt= job_desc)
+      if(user_input == "y"){
+        sample_job_descriptions$liked_or_not[index] = 1
+      }else{
+        sample_job_descriptions$liked_or_not = 0
+      }
+    } return(sample_job_descriptions)
+  }
+}
 
+
+
+sample_job_descriptions = sampling(resume_is_stem)
+
+tokenize.df(sample_job_descriptions)
+
+#need df with 2 cols, 1 is yes/no, and the other is a token column that lists the token
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
 #if the resume is flagged as stem
 if(resume_is_stem == FALSE){
   
