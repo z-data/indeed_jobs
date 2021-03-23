@@ -165,6 +165,59 @@ for (i in 1:length(split_df)) {
 max(master_li$human_resource_specialist)
 ```
 
+
+```{r}
+
+#getting the inverse document frequency numbers 
+tf_idf = function(split_df) {
+  #initializing a DF 
+  all_tots_df = data.frame()
+  send_back = data.frame()
+  
+  #going through all the different jobs 
+  for (i in 1:length(split_df)) {
+    
+    #getting a temp holder
+    temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+    #getting some sort of normalized data for the master list
+    all_tots_df = bind_rows(all_tots_df, temp / length(temp)) 
+    
+  }
+  all_tots_df[is.na(all_tots_df)] = 0
+  #first get total colums with a value
+  #then take the log factor of value/total docs
+  all_tots_df = bind_rows(all_tots_df, colSums(all_tots_df > 0))
+  all_tots_df = bind_rows(all_tots_df, log10((nrow(all_tots_df)-1) / all_tots_df[nrow(all_tots_df),]))
+  
+  #now returning the tf-idf
+  inverse = all_tots_df[nrow(all_tots_df),]
+  print(length(inverse))
+  for (i in 1:length(split_df)) {
+    freqs = all_tots_df[i,]
+    print(length(freqs))
+    tf_idf = freqs * inverse
+    send_back = bind_rows(send_back, tf_idf)
+  }
+  rownames(send_back) = names(split_df)
+  return(round(send_back, 5))
+}
+
+tf_idf_df = tf_idf(split_df)
+sort(tf_idf_df[3,], decreasing = T)
+
+apply(tf_idf_df,1,function(x) sort(x, decreasing = T))
+
+tf_idf_df = tf_idf_df[name]
+
+
+```
+
+
+
+
+
+
+
 ```{r}
 tokenize_resume = function(path) {
   #inputting sarah resume 
@@ -484,9 +537,30 @@ lasso_cv <- cv.glmnet(x_train, train$liked_or_not, alpha=1)
 coef(lasso_cv)
 lasso_mod <- glmnet(x_train, y_train, alpha=1, lambda=lasso_cv$lambda.1se)
 coef(lasso_mod)
+
+
+
+
+cos_sim <- function(v1, v2){
+  numerator <- sum(v1*v2)
+  denominator <- sqrt(sum(v1^2)) * sqrt(sum(v2^2))
+  output <- numerator / denominator
+  return(output)
+}
 ```
 
 
+```{r}
+master_li
+
+
+tf_idf = function(df) {}
+  
+  
+  
+  
+}
+```
 
 
 
