@@ -214,6 +214,11 @@ best_matches_overview = function(li, resume) {
   return(matches)
 }
 
+sarah = tokenize_resume("sarahresumetxt.txt")
+sarah
+
+zac = tokenize_resume("test.txt")
+zac
 
 bm = best_matches_overview(master_li, sarah)
 print(sort(bm[,1], decreasing = T))
@@ -258,7 +263,6 @@ best_matches = function(df, job_name, resume) {
 
 best = best_matches(split_df, job_names, sarah)
 best
-hope
 ```
 ```{r}
 max(master_li$human_resource_specialist)
@@ -362,13 +366,9 @@ stem_or_non = function(resume, stem, non_stem){
   return(li)
 }
 
-sarah = tokenize_resume("sarahresumetxt.txt")
-sarah
 
-zac = tokenize_resume("test.txt")
-zac
 
-values = stem_or_non(sarah_tokens, stem_df, non_stem_df)
+values = stem_or_non(zac, stem_df, non_stem_df)
 ```
 
 
@@ -393,47 +393,48 @@ non_stem_jobs_df <- jobs_df[jobs_df$Job=="recruiter"|jobs_df$Job=="marketing"|jo
 #stem df
 stem_jobs_df <- jobs_df[jobs_df$Job == "ux_designer" | jobs_df$Job == "test_engineer" |jobs_df$Job == "site_reliability_engineer" |jobs_df$Job == "data_architect" |jobs_df$Job == "data_scientist" |jobs_df$Job == "software_developer" |jobs_df$Job == "statistician" |jobs_df$Job == "deep_learning" |jobs_df$Job == "machine_learning_engineer" |jobs_df$Job == "business_analyst",]
 
-sampling = function(resume_is_stem) {
+sampling = function(resume_is_stem, N) {
   #if the resume is flagged as stem
   if(resume_is_stem == FALSE){
     
     #randomly sample n jobs from the master df
-    sample_job_descriptions <- sample_n(non_stem_jobs_df, 5)
+    sample_job_descriptions <- sample_n(non_stem_jobs_df, N)
     
     #create new col to represent if the user liked the job or not
-    sample_job_descriptions$liked_or_not <- NULL
+    sample_job_descriptions$liked_or_not <- NA
     
     #loop thru the df, show the user a job desc and ask them if they like it. If they like it, assign a value of 1 to the liked_or_not col, if they    don't assign a value of 0
-    for (index in 1:length(sample_job_descriptions)) {
+    for (index in 1:N) {
       job_desc <- str(sample_job_descriptions$Description[index])
       user_input <- readline(prompt= job_desc)
       if(user_input == "y"){
         sample_job_descriptions$liked_or_not[index] = 1
       }else{
-        sample_job_descriptions$liked_or_not = 0
+        sample_job_descriptions$liked_or_not[index] = 0
       }
-    } return(sample_job_descriptions)
+    } 
     #repeat process for stem
   }else{
-    sample_job_descriptions <- sample_n(stem_jobs_df, 5)
-    sample_job_descriptions$liked_or_not <- NULL
-    for (index in 1:length(sample_job_descriptions)) {
+    sample_job_descriptions <- sample_n(stem_jobs_df, N)
+    sample_job_descriptions$liked_or_not <- NA
+    for (index in 1:N) {
       job_desc <- str(sample_job_descriptions$Description[index])
       user_input <- readline(prompt= job_desc)
       if(user_input == "y"){
         sample_job_descriptions$liked_or_not[index] = 1
+        print(sample_job_descriptions$liked_or_not[index])
       }else{
-        sample_job_descriptions$liked_or_not = 0
+        sample_job_descriptions$liked_or_not[index] = 0
       }
-    } return(sample_job_descriptions)
+    }
   }
+  return(sample_job_descriptions)
 }
 
 
-
-sample_job_descriptions = sampling(resume_is_stem)
-
-tokenize.df(sample_job_descriptions)
+#making a training set 
+train = sampling(resume_is_stem, 10)
+train = tokenize.df(train)
 
 #need df with 2 cols, 1 is yes/no, and the other is a token column that lists the token
 
@@ -448,79 +449,41 @@ tokenize.df(sample_job_descriptions)
 
 
 ```{r}
-#if the resume is flagged as stem
-if(resume_is_stem == FALSE){
-  
-  #randomly sample n jobs from the master df
-  sample_job_descriptions <- sample_n(non_stem_jobs_df, 5)
-  
-  #change from vector -> df
-  sample_job_descriptions <- as.data.frame(sample_job_descriptions)
-  
-  #create new col to represent if the user liked the job or not
-  sample_job_descriptions$liked_or_not <- NULL
-  
-  #loop thru the df, show the user a job desc and ask them if they like it. If they like it, assign a value of 1 to the liked_or_not col, if they don't assign a value of 0
-  for (index in 1:length(sample)) {
-    job_desc <- str(sample_job_descriptions$Description[index])
-    user_input <- readline(prompt= job_desc)
-    if(user_input == "y"){
-      sample_job_descriptions$liked_or_not[index] = 1
-    }else{
-      sample_job_descriptions$liked_or_not = 0
-    }
-  }
-  #repeat process for stem
-}else{
-  sample_job_descriptions <- sample_n(stem_jobs_df, 5)
-  sample_job_descriptions <- as.data.frame(sample_job_descriptions)
-  sample_job_descriptions$liked_or_not <- NULL
-  for (index in 1:length(sample)) {
-    job_desc <- str(sample_job_descriptions$Description[index])
-    user_input <- readline(prompt= job_desc)
-    if(user_input == "y"){
-      sample_job_descriptions$liked_or_not[index] = 1
-    }else{
-      sample_job_descriptions$liked_or_not = 0
-    }
-  }
+#getting test jobs
+test_jobs <- sample_n(non_stem_jobs_df, 5)
+test_jobs = tokenize.df(test_jobs)
+
+#splitting into Y~X
+y_train = train[,6]
+x_train = train[,7:length(train)]
+
+x_test = test_jobs[, 6:length(test_jobs)] 
+
+x_train = as.data.frame(as.matrix(x_train))
+
+for(i in names(x_train)) {
+  print(i)
+  x_train[i,] = as.integer(x_train[i,])
 }
 
-#function to tokenize the job descriptions
-tokenize_job_desc = function(path) {
-  #inputting sarah resume 
-  resume = path
-  resume = str_c(resume, sep = " ", collapse = " ") 
-  
-  #tokenizing the resume 
-  tokens = table(tokenize_words(resume, 
-                                    stopwords = stopwords::stopwords("en")))
-  
-  tokens = as.list(tokens, all.names = F)
-  
-  tokens = as.data.frame(tokens)
-  return(tokens)
-}
-
-#vector to hold the tokens extracted from the job descriptions
-params <- c()
+name = apply(x_train,2,sum) > 5
+x_train = x_train[,name]
 
 
-sample_job_descriptions$tokens <- NULL
+mod <- glm(y_train ~ . , data = x_train,   family=binomial(link="logit"))
+test_probs <- predict(mod, newdata=x_test, type="response")
 
-#iterate thru the sampled job descriptions, tokenize them, and add tokens to the vector
 
-df_for_model <- data.frame()
 
-  for(row in length(sample_job_descriptions)){
-    param_row <- tokenize_job_desc(sample_job_descriptions$Description[index])
-    params <- c(params, param_row)
-    
-    
-  }
+mod <- glm(y_train ~ . , data = x_train,   family=binomial(link="logit"))
 
-#need df with 2 cols, 1 is yes/no, and the other is a token column that lists the token
+class(y_train)
+library(glmnet)
 
+lasso_cv <- cv.glmnet(x_train, train$liked_or_not, alpha=1)
+coef(lasso_cv)
+lasso_mod <- glmnet(x_train, y_train, alpha=1, lambda=lasso_cv$lambda.1se)
+coef(lasso_mod)
 ```
 
 
