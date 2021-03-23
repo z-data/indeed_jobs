@@ -169,6 +169,7 @@ max(master_li$human_resource_specialist)
 ```{r}
 
 #getting the inverse document frequency numbers 
+#takes in a DF that has been split into sub categories 
 tf_idf = function(split_df) {
   #initializing a DF 
   all_tots_df = data.frame()
