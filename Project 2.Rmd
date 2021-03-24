@@ -107,8 +107,10 @@ tokenize.df = function(df) {
   for (i in 1:length(df$Description)) {
     tokens = table(tokenize_words(df$Description[i], 
                                   stopwords = stopwords::stopwords("en")))
+    
+    tokens = tokens / length(tokens)
     #temp DF to merge later 
-    temp = bind_rows(temp, as.vector(tokens))
+    temp = bind_rows(temp, tokens)
     
   }
   #setting NA to 0 because it is easier to use in this case
@@ -121,7 +123,6 @@ tokenize.df = function(df) {
 
 ## Tokenize the DF
 ```{r}
-
 #for loop to go through each job type and tokenize the description
 for (i in 1:length(split_df)) {
   temp = split_df[[i]]
@@ -142,12 +143,13 @@ naive_method = function(split_df, scale_large = T) {
       #getting a temp holder
       temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
       #getting a normalization factor 
-      factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
+      factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, function(x) sum(x > 0)))
       #getting some sort of normalized data for the master list
       master_li[[names(split_df)[i]]] = temp / factor
       
     }
     return(master_li)
+    
   }
   else {
     for (i in 1:length(split_df)) {
@@ -163,12 +165,19 @@ naive_method = function(split_df, scale_large = T) {
 master_li = naive_method(split_df)
 freq_split_df = naive_method(split_df, F)
 
-split_df[[1]]
+
+for(i in 1:length(freq_split_df)) {
+  print(i)
+  for(j in 6:nrow(freq_split_df[[i]])) {
+    freq_split_df[[i]][,j] = as.numeric(freq_split_df[[i]][,j])
+  }
+}
+
+rowSums(split_df[[1]][,6:length(split_df[[1]])])
 ```
 
 
 ```{r}
-
 #getting the inverse document frequency numbers 
 #takes in a DF that has been split into sub categories 
 tf_idf = function(split_df, large_scale = T) {
@@ -209,13 +218,13 @@ tf_idf = function(split_df, large_scale = T) {
       print(i)
       #getting a temp holder
       temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
-      #getting some sort of normalized data for the master list
-      split_df[[i]] = bind_rows(split_df[[i]], temp) 
-      split_df[[i]] = bind_rows(split_df[[i]], colSums(split_df[[i]] > 0))
-      split_df[[i]] = bind_rows(split_df[[i]], log10((nrow(split[[i]])-1) / split_df[[i]][nrow(split_df[[i]]),]))
-
       
-      print(length(inverse))
+      #getting some sort of normalized data for the master list
+      send_back = bind_rows(send_back, temp) 
+      print("HERE")
+      send_back = bind_rows(send_back, colSums(split_df[[i]][,6:length(split_df[[i]])] > 0))
+      send_back = bind_rows(send_back, log10((nrow(split_df[[i]])-1) / split_df[[i]][nrow(split_df[[i]]),6:length(split_df[[i]])]))
+
       for (j in 1:nrow(split_df[[i]])) {
         inverse = split_df[[i]][nrow(split_df[[i]]),6:ncol(split_df[[i]])]
         freqs = split_df[[i]][j,6:ncol(split_df[[i]])]
@@ -223,22 +232,24 @@ tf_idf = function(split_df, large_scale = T) {
         split_df[[i]][j,6:ncol(split_df[[i]])] = tf_idf
       }
     }
-    return(round(split_df, 5))
+    return(split_df)
   }
 }
 
 
 tf_idf_df = tf_idf(split_df)
-sort(tf_idf_df[3,], decreasing = T)
+#sort(tf_idf_df[3,], decreasing = T)
 
 tfIdf_split_df = tf_idf(freq_split_df, F)
 
 
+apply(split_df[[1]][,6:length(split_df[[1]])], 2, sum)
 
-apply(tf_idf_df,1,function(x) sort(x, decreasing = T))
 
-tf_idf_df = tf_idf_df * 100
+tfIdf_split_df$business_analyst
+freq_split_df$business_analyst
 
+'''
 #checking if the 2 methods look similar 
 sort(tf_idf_df[3,], decreasing = T)
 sort(master_li$data_scientist, decreasing = T)
@@ -250,6 +261,7 @@ for (i in 1:nrow(tf_idf_df)) {
 }
 
 idf_list
+'''
 
 ```
 
@@ -315,7 +327,7 @@ zac = tokenize_resume("test.txt")
 zac
 
 bm_new = best_matches_overview(master_li, zac)
-print(sort(bm[,1], decreasing = T))
+print(sort(bm_new[,1], decreasing = T))
 
 bm_idf = best_matches_overview(idf_list, zac)
 print(sort(bm_idf[,1], decreasing = T))
