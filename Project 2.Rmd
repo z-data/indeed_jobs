@@ -130,52 +130,23 @@ for (i in 1:length(split_df)) {
   print(i)
 }
 
-split_df$business_analyst
 ```
-This part is grabbing the totals of each column 
+
+Getting a Data Frame that only has the tokens 
 ```{r}
-naive_method = function(split_df, scale_large = T) {
-  #getting the broad scale version of the naive method 
-   if(scale_large == T) {
-    
-    master_li = list()
-    for (i in 1:length(split_df)) {
-      
-      #getting a temp holder
-      temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
-      #getting a normalization factor 
-      factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, function(x) sum(x > 0)))
-      #getting some sort of normalized data for the master list
-      master_li[[names(split_df)[i]]] = temp / factor
-      
-    }
-    return(master_li)
-    
-  }
-  else {
-    for (i in 1:length(split_df)) {
-      print(i)
-      for (j in 1:nrow(split_df[[i]]))
-      #finding the frequency of words 
-      split_df[[i]][j,6:ncol(split_df[[i]][j,])] = split_df[[i]][j, 6:ncol(split_df[[i]][j,])] / length(6:ncol(split_df[[i]][j,]))
-    }
-  }
-  return(split_df)
+split_df_freqs = split_df
+for( i in 1:length(split_df_freqs)) {
+  split_df_freqs[[i]] = split_df_freqs[[i]][,6:length(split_df_freqs[[i]])]
 }
 
-master_li = naive_method(split_df)
-freq_split_df = naive_method(split_df, F)
-
-
-for(i in 1:length(freq_split_df)) {
-  print(i)
-  for(j in 6:nrow(freq_split_df[[i]])) {
-    freq_split_df[[i]][,j] = as.numeric(freq_split_df[[i]][,j])
-  }
+#getting all tha values to be numeric
+for(i in 1:length(split_df_freqs)) {
+  for(j in 1:length(split_df_freqs[[i]]))
+    split_df_freqs[[i]][,j] = as.numeric(split_df_freqs[[i]][,j])
 }
+
 ```
-
-
+Getting the TF_IDF
 ```{r}
 #getting the inverse document frequency numbers 
 #takes in a DF that has been split into sub categories 
@@ -191,7 +162,7 @@ tf_idf = function(split_df, large_scale = T) {
       #getting a temp holder
       temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
       #getting some sort of normalized data for the master list
-      all_tots_df = bind_rows(all_tots_df, temp / length(temp)) 
+      all_tots_df = bind_rows(all_tots_df, temp) 
       
     }
     all_tots_df[is.na(all_tots_df)] = 0
@@ -202,10 +173,8 @@ tf_idf = function(split_df, large_scale = T) {
     
     #now returning the tf-idf
     inverse = all_tots_df[nrow(all_tots_df),]
-    print(length(inverse))
     for (i in 1:length(split_df)) {
       freqs = all_tots_df[i,]
-      print(length(freqs))
       tf_idf = freqs * inverse
       send_back = bind_rows(send_back, tf_idf)
     }
@@ -213,55 +182,32 @@ tf_idf = function(split_df, large_scale = T) {
     return(round(send_back, 5))
   }
   else {
-    for (i in 1:length(split_df)) {
-      print(i)
-      #getting a temp holder
-      temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+    #getting totals of the DF
+    split_df = bind_rows(split_df, colSums(split_df > 0))
+    split_df = bind_rows(split_df, log10((nrow(split_df-1 ) / split_df[nrow(split_df),])))
       
-      #getting some sort of normalized data for the master list
-      send_back = bind_rows(send_back, temp) 
-      print("HERE")
-      send_back = bind_rows(send_back, colSums(split_df[[i]][,6:length(split_df[[i]])] > 0))
-      send_back = bind_rows(send_back, log10((nrow(split_df[[i]])-1) / split_df[[i]][nrow(split_df[[i]]),6:length(split_df[[i]])]))
-
-      for (j in 1:nrow(split_df[[i]])) {
-        inverse = split_df[[i]][nrow(split_df[[i]]),6:ncol(split_df[[i]])]
-        freqs = split_df[[i]][j,6:ncol(split_df[[i]])]
-        tf_idf = freqs * inverse
-        split_df[[i]][j,6:ncol(split_df[[i]])] = tf_idf
-      }
+    inverse = split_df[nrow(split_df),]
+    for (i in 1:(nrow(split_df)-2)) {
+      freqs = split_df[i,]
+      tf_idf = split_df[nrow(split_df),] * split_df[i,]
+      split_df[i,] = tf_idf
     }
-    return(split_df)
   }
+    return(split_df)
 }
 
 
-tf_idf_df = tf_idf(split_df)
+
+#tf_idf_df = tf_idf(split_df)
 #sort(tf_idf_df[3,], decreasing = T)
 
-tfIdf_split_df = tf_idf(freq_split_df, F)
 
-
-apply(split_df[[1]][,6:length(split_df[[1]])], 2, sum)
-
-
-tfIdf_split_df$business_analyst
-freq_split_df$business_analyst
-
-'''
-#checking if the 2 methods look similar 
-sort(tf_idf_df[3,], decreasing = T)
-sort(master_li$data_scientist, decreasing = T)
-
-
-idf_list = list()
-for (i in 1:nrow(tf_idf_df)) {
-  idf_list[[rownames(tf_idf_df)[i]]] = tf_idf_df[i,]
+for (i in 1:length(split_df_freqs)) {
+  print(i)
+  split_df_freqs[[i]] = tf_idf(split_df_freqs[[i]], F)
 }
 
-idf_list
-'''
-
+#split_df_test = bind_rows(split_df, colSums(split_df_freqs[[1]] > 0))
 ```
 
 
