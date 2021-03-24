@@ -130,6 +130,7 @@ for (i in 1:length(split_df)) {
   print(i)
 }
 
+split_df$business_analyst
 ```
 This part is grabbing the totals of each column 
 ```{r}
@@ -172,8 +173,6 @@ for(i in 1:length(freq_split_df)) {
     freq_split_df[[i]][,j] = as.numeric(freq_split_df[[i]][,j])
   }
 }
-
-rowSums(split_df[[1]][,6:length(split_df[[1]])])
 ```
 
 
