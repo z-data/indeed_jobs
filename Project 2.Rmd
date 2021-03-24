@@ -19,7 +19,7 @@ jobs_2021 = fromJSON(file = "indeed_job_descs_2021_01_25.json")
 ```
 
 
-Getting the data into a workable DF
+## Getting the data into a workable DF
 ```{r}
 jobs_df = data.frame("Job", "State", "Employment", 
                      "description", 2020)
@@ -49,7 +49,8 @@ dim(jobs_df)
 
 #unique(factor(jobs_df$State))
 ```
-There is no data for anything past the 4th description
+## This is adding the second json file in 
+## There is no data for anything past the 4th description
 ```{r}
 #1:4 because every job after the 4th one has no description
 for(i in 1:4) {
@@ -92,7 +93,7 @@ barplot(height = table(jobs_df$Job), las = 2, cex.names = .75)
 
 table(jobs_df$Job)
 ```
-
+## Tokenize the DF function
 You will need to download tokenizers and stopwords
 ```{r}
 #splitting the DF
@@ -107,7 +108,7 @@ tokenize.df = function(df) {
     tokens = table(tokenize_words(df$Description[i], 
                                   stopwords = stopwords::stopwords("en")))
     #temp DF to merge later 
-    temp = bind_rows(temp, tokens)
+    temp = bind_rows(temp, as.vector(tokens))
     
   }
   #setting NA to 0 because it is easier to use in this case
@@ -118,51 +119,51 @@ tokenize.df = function(df) {
 ```
 
 
-```{r}
-tokenize_ngrams.df = function(df) {
-  
-  temp = data.frame()
-  for (i in 1:length(df$Description)) {
-    tokens = table(tokenize_ngrams(df$Description[i], n = 3, n_min = 1,
-                                  stopwords = stopwords::stopwords("en")))
-    #temp DF to merge later 
-    temp = bind_rows(temp, tokens)
-    
-  }
-  #setting NA to 0 because it is easier to use in this case
-  temp[is.na(temp)] = 0
-  df = bind_cols(df,temp)
-  return(df)
-}
-```
-
-
-This part takes some time
+## Tokenize the DF
 ```{r}
 
 #for loop to go through each job type and tokenize the description
 for (i in 1:length(split_df)) {
-  temp = split_df[i]
-  split_df[[i]] = tokenize.df(temp[[1]])
+  temp = split_df[[i]]
+  split_df[[i]] = tokenize.df(temp)
   print(i)
 }
 
 ```
 This part is grabbing the totals of each column 
 ```{r}
-master_li = list()
-for (i in 1:length(split_df)) {
-  
-  #getting a temp holder
-  temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
-  #getting a normalization factor 
-  factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
-  #getting some sort of normalized data for the master list
-  master_li[[names(split_df)[i]]] = temp / factor
-  
+naive_method = function(split_df, scale_large = T) {
+  #getting the broad scale version of the naive method 
+   if(scale_large == T) {
+    
+    master_li = list()
+    for (i in 1:length(split_df)) {
+      
+      #getting a temp holder
+      temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+      #getting a normalization factor 
+      factor = mean(apply(split_df[[i]][,6:length(split_df[[i]])], 1, sum))
+      #getting some sort of normalized data for the master list
+      master_li[[names(split_df)[i]]] = temp / factor
+      
+    }
+    return(master_li)
+  }
+  else {
+    for (i in 1:length(split_df)) {
+      print(i)
+      for (j in 1:nrow(split_df[[i]]))
+      #finding the frequency of words 
+      split_df[[i]][j,6:ncol(split_df[[i]][j,])] = split_df[[i]][j, 6:ncol(split_df[[i]][j,])] / length(6:ncol(split_df[[i]][j,]))
+    }
+  }
+  return(split_df)
 }
 
-max(master_li$human_resource_specialist)
+master_li = naive_method(split_df)
+freq_split_df = naive_method(split_df, F)
+
+split_df[[1]]
 ```
 
 
@@ -170,46 +171,85 @@ max(master_li$human_resource_specialist)
 
 #getting the inverse document frequency numbers 
 #takes in a DF that has been split into sub categories 
-tf_idf = function(split_df) {
+tf_idf = function(split_df, large_scale = T) {
   #initializing a DF 
   all_tots_df = data.frame()
   send_back = data.frame()
   
-  #going through all the different jobs 
-  for (i in 1:length(split_df)) {
+  if(large_scale == T){
+    #going through all the different jobs 
+    for (i in 1:length(split_df)) {
+      
+      #getting a temp holder
+      temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+      #getting some sort of normalized data for the master list
+      all_tots_df = bind_rows(all_tots_df, temp / length(temp)) 
+      
+    }
+    all_tots_df[is.na(all_tots_df)] = 0
+    #first get total colums with a value
+    #then take the log factor of value/total docs
+    all_tots_df = bind_rows(all_tots_df, colSums(all_tots_df > 0))
+    all_tots_df = bind_rows(all_tots_df, log10((nrow(all_tots_df)-1) / all_tots_df[nrow(all_tots_df),]))
     
-    #getting a temp holder
-    temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
-    #getting some sort of normalized data for the master list
-    all_tots_df = bind_rows(all_tots_df, temp / length(temp)) 
-    
+    #now returning the tf-idf
+    inverse = all_tots_df[nrow(all_tots_df),]
+    print(length(inverse))
+    for (i in 1:length(split_df)) {
+      freqs = all_tots_df[i,]
+      print(length(freqs))
+      tf_idf = freqs * inverse
+      send_back = bind_rows(send_back, tf_idf)
+    }
+    rownames(send_back) = names(split_df)
+    return(round(send_back, 5))
   }
-  all_tots_df[is.na(all_tots_df)] = 0
-  #first get total colums with a value
-  #then take the log factor of value/total docs
-  all_tots_df = bind_rows(all_tots_df, colSums(all_tots_df > 0))
-  all_tots_df = bind_rows(all_tots_df, log10((nrow(all_tots_df)-1) / all_tots_df[nrow(all_tots_df),]))
-  
-  #now returning the tf-idf
-  inverse = all_tots_df[nrow(all_tots_df),]
-  print(length(inverse))
-  for (i in 1:length(split_df)) {
-    freqs = all_tots_df[i,]
-    print(length(freqs))
-    tf_idf = freqs * inverse
-    send_back = bind_rows(send_back, tf_idf)
+  else {
+    for (i in 1:length(split_df)) {
+      print(i)
+      #getting a temp holder
+      temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+      #getting some sort of normalized data for the master list
+      split_df[[i]] = bind_rows(split_df[[i]], temp) 
+      split_df[[i]] = bind_rows(split_df[[i]], colSums(split_df[[i]] > 0))
+      split_df[[i]] = bind_rows(split_df[[i]], log10((nrow(split[[i]])-1) / split_df[[i]][nrow(split_df[[i]]),]))
+
+      
+      print(length(inverse))
+      for (j in 1:nrow(split_df[[i]])) {
+        inverse = split_df[[i]][nrow(split_df[[i]]),6:ncol(split_df[[i]])]
+        freqs = split_df[[i]][j,6:ncol(split_df[[i]])]
+        tf_idf = freqs * inverse
+        split_df[[i]][j,6:ncol(split_df[[i]])] = tf_idf
+      }
+    }
+    return(round(split_df, 5))
   }
-  rownames(send_back) = names(split_df)
-  return(round(send_back, 5))
 }
+
 
 tf_idf_df = tf_idf(split_df)
 sort(tf_idf_df[3,], decreasing = T)
 
+tfIdf_split_df = tf_idf(freq_split_df, F)
+
+
+
 apply(tf_idf_df,1,function(x) sort(x, decreasing = T))
 
-tf_idf_df = tf_idf_df[name]
+tf_idf_df = tf_idf_df * 100
 
+#checking if the 2 methods look similar 
+sort(tf_idf_df[3,], decreasing = T)
+sort(master_li$data_scientist, decreasing = T)
+
+
+idf_list = list()
+for (i in 1:nrow(tf_idf_df)) {
+  idf_list[[rownames(tf_idf_df)[i]]] = tf_idf_df[i,]
+}
+
+idf_list
 
 ```
 
@@ -274,9 +314,11 @@ sarah
 zac = tokenize_resume("test.txt")
 zac
 
-bm = best_matches_overview(master_li, sarah)
+bm_new = best_matches_overview(master_li, zac)
 print(sort(bm[,1], decreasing = T))
 
+bm_idf = best_matches_overview(idf_list, zac)
+print(sort(bm_idf[,1], decreasing = T))
 #converting job names to a matrix
 job_names  = names(sort(bm[,1], decreasing = T)[1:3])
 job_names = str_split_fixed(job_names, "", 1)
@@ -315,7 +357,7 @@ best_matches = function(df, job_name, resume) {
 }
 
 
-best = best_matches(split_df, job_names, sarah)
+best = best_matches(freq_split_df, job_names, zac)
 best
 ```
 ```{r}
