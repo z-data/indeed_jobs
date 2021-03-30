@@ -198,7 +198,7 @@ tf_idf = function(split_df, large_scale = T) {
 
 
 
-#tf_idf_df = tf_idf(split_df)
+tf_idf_df = tf_idf(split_df)
 #sort(tf_idf_df[3,], decreasing = T)
 
 
@@ -207,16 +207,21 @@ for (i in 1:length(split_df_freqs)) {
   split_df_freqs[[i]] = tf_idf(split_df_freqs[[i]], F)
 }
 
-#split_df_test = bind_rows(split_df, colSums(split_df_freqs[[1]] > 0))
+```
+```{r}
+#this gets a total sum of the proportion of all the words 
+master_li = list()
+
+for (i in 1:length(split_df)) {
+  temp = apply(split_df[[i]][,6:length(split_df[[i]])], 2, sum)
+  master_li[[names(split_df)[i]]] = temp / nrow(split_df[[i]])
+}
+
 ```
 
 
-
-
-
-
-
 ```{r}
+#setting the resumes up as tokens 
 tokenize_resume = function(path) {
   #inputting sarah resume 
   resume = readLines(path, warn = F)
@@ -232,10 +237,19 @@ tokenize_resume = function(path) {
   return(tokens)
 }
 zac = tokenize_resume("test.txt")
-zac
+zac1 = tokenize_resume("test1.txt")
+zac2 = tokenize_resume("test2.txt")
+
+
+sarah = tokenize_resume("sarahresumetxt.txt")
+sarah
 ```
 
 ```{r}
+#tf_idf_df is the DF with job totals 
+# split_df_freqs is the DF with tf-idf for each job description
+# master_li has the total proportion of words in each job field 
+sort(master_li$human_resource_specialist, decreasing = T)
 #function that multiplys columns in DFs together 
 multi = function(df) {
   if (length(df) < 3) {
@@ -265,27 +279,55 @@ best_matches_overview = function(li, resume) {
   return(matches)
 }
 
-sarah = tokenize_resume("sarahresumetxt.txt")
-sarah
 
-zac = tokenize_resume("test.txt")
-zac
+best_matches_overview_df = function(li, resume) {
+  matches = matrix(NA, nrow = nrow(li), ncol = 1)
+  
+  for(i in 1:nrow(li)) {
+    print(i)
+    tester = bind_rows(li[i,], resume)
+    tester[is.na(tester)] = 0
+    score = sum(apply(tester, 2, multi), na.rm = T)
+    #matches[[names(li)[i]]] = score
+    matches[i,1] = score
+  }
+  rownames(matches) = rownames(li)
+  return(matches)
+}
 
-bm_new = best_matches_overview(master_li, zac)
+
+bm_new = best_matches_overview(master_li, zac2)
 print(sort(bm_new[,1], decreasing = T))
 
-bm_idf = best_matches_overview(idf_list, zac)
+bm_idf = best_matches_overview_df(tf_idf_df, zac2)
 print(sort(bm_idf[,1], decreasing = T))
 #converting job names to a matrix
-job_names  = names(sort(bm[,1], decreasing = T)[1:3])
+job_names  = names(sort(bm_new[,1], decreasing = T)[1:5])
 job_names = str_split_fixed(job_names, "", 1)
 
+
+job_names1  = names(sort(bm_idf[,1], decreasing = T)[1:5])
+job_names1 = str_split_fixed(job_names1, "", 1)
 ```
 Since it is a human in the model algo we can then either determine if these seem like they will fit or not.
 We could just grab the first 3 and get a few more examples 
 
+
 ```{r}
-best_matches = function(df, job_name, resume) {
+matching_descriptions = split_df_freqs
+for(i in 1:length(matching_descriptions)) {
+  matching_descriptions[[i]]$descriptions = NA
+  for(j in 1:length(matching_descriptions[[i]])) {
+    
+  }
+}
+```
+
+
+
+
+```{r}
+best_matches = function(df, job_name, resume, split_df) {
   matches = list()
   #outerloop for the overall job category
   for (i in 1:nrow(job_name)) {
@@ -294,31 +336,36 @@ best_matches = function(df, job_name, resume) {
     index = 1
     print(job_name[i,1])
     #innerloop to get the best job match from the category
-    for(j in 1:nrow(df[[i]])) {
+    for(j in 1:nrow(df[[job_name[i,1]]])-2) {
       #temp is a DF of just the jth row only containing columns with tokenization
-      temp = df[[job_name[i,1] ]][j, 6:ncol(df[[job_name[i,1]]])]
+      temp = df[[job_name[i,1] ]][j,]
       tester = bind_rows(temp, resume)
       tester[is.na(tester)] = 0
       new_score = sum(apply(tester, 2, multi), na.rm = T)
       #changes the best seen score 
       if (new_score > score) {
-        index = j 
+        index = j
+        print("here")
+        print(new_score)
         score = new_score 
       }
       
     }
     #sets the list with name of overall job and appends the best scoring description 
-    matches[[job_name[i,1]]] = df[[job_name[i,1]]][index, 4]
+    matches[[job_name[i,1]]] = split_df[[job_name[i,1]]][index, 4]
+    print(index)
     }
   return(matches)
 }
 
 
-best = best_matches(freq_split_df, job_names, zac)
+best = best_matches(split_df_freqs, job_names1, zac2, split_df)
 best
+
+
 ```
 ```{r}
-max(master_li$human_resource_specialist)
+split_df_freqs$ux_designer
 ```
 
  
