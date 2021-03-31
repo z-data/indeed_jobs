@@ -345,8 +345,6 @@ best_matches = function(df, job_name, resume, split_df) {
       #changes the best seen score 
       if (new_score > score) {
         index = j
-        print("here")
-        print(new_score)
         score = new_score 
       }
       
@@ -598,15 +596,66 @@ cos_sim <- function(v1, v2){
 
 
 ```{r}
-master_li
+library(tm)
+
+#take a sample of the job descriptions to minimize runtime
+sample_desc <- sample_n(jobs_df, 20)
+
+final_df <- jobs_df
+
+#read in the resume (I used zach's)
+resume_string <- read_file("/Users/nikhilgopal/Downloads/resume.txt")
+
+#create a new with the resume info
+resume_df <- data.frame("resume", "NY", "fulltime", resume_string, "2021")
+names(resume_df) <- colnames(sample_desc)
+
+#add the resume to the sample descriptions
+sample_desc <- rbind(sample_desc, resume_df)
+
+final_df <- rbind(final_df, resume_df)
+
+#create a new df formatted in the way needed to make a corpus object to work w tm library
+descs <- data.frame(
+  doc_id <- seq(1:nrow(final_df)),
+  text <- final_df$Description
+)
+names(descs) <- c("doc_id", "text")
 
 
-tf_idf = function(df) {}
-  
-  
-  
-  
+#object that allows the data frame to be turned into a corpus
+ds <- DataframeSource(descs)
+
+#create a corpus object
+#corpus objects are objects that are used to process all the different texts
+corpus <- Corpus(ds)
+
+#preprocessing text
+corpus <- tm_map(corpus, removeWords, stopwords("english"))
+corpus <- tm_map(corpus, stripWhitespace)
+corpus <- tm_map(corpus, stemDocument, language="english")
+
+#creating term matrix with TF-IDF weighting
+tdm <-DocumentTermMatrix(corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = FALSE)))
+mat <- as.matrix(tdm)
+
+#function to turn it into cosine similiarity matrix
+cos_sim = function(matrix){
+    numerator = matrix %*% t(matrix)
+    A = sqrt(apply(matrix^2, 1, sum))
+    denumerator = A %*% t(A)
+    return(numerator / denumerator)
 }
+
+
+cos_sim_matrix <- cos_sim(mat)
+
+#3 best matching resumes are dataframe rows 485, 503, 522
+#3 worst matches are df rows 757, 384, 80
+
+#you figure this out ^ by just sorting the matrix for row/column 760
+#I added the resume as the last row in the df, so the cos sim from the last row is what we are looking for
+#then you take the row/col numbers of those rows and use them as the row # for the jobs_df dataframe and you will get the job descriptions
 ```
 
 
